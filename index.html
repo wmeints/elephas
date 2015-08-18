@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='https://fonts.googleapis.com/css?family=Architects+Daughter' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print">
+
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <title>Elephas by maxpumperla</title>
+  </head>
+
+  <body>
+    <header>
+      <div class="inner">
+        <h1>Elephas</h1>
+        <h2>Deep learning on Spark with Keras</h2>
+        <a href="https://github.com/maxpumperla/elephas" class="button"><small>View project on</small> GitHub</a>
+      </div>
+    </header>
+
+    <div id="content-wrapper">
+      <div class="inner clearfix">
+        <section id="main-content">
+          <h1>
+<a id="elephas-keras-deep-learning-on-apache-spark" class="anchor" href="#elephas-keras-deep-learning-on-apache-spark" aria-hidden="true"><span class="octicon octicon-link"></span></a>Elephas: Keras Deep Learning on Apache Spark</h1>
+
+<h2>
+<a id="introduction" class="anchor" href="#introduction" aria-hidden="true"><span class="octicon octicon-link"></span></a>Introduction</h2>
+
+<p>Elephas brings deep learning with <a href="http://keras.io">Keras</a> to <a href="http://spark.apache.org">Apache Spark</a>. Elephas intends to keep the simplicity and usability of Keras, allowing for fast prototyping of distributed models to run on large data sets.</p>
+
+<p>ἐλέφας is Greek for <em>ivory</em> and an accompanying project to κέρας, meaning <em>horn</em>. If this seems weird mentioning, like a bad dream, you should confirm it actually is at the <a href="https://github.com/fchollet/keras/blob/master/README.md">Keras documentation</a>. Elephas also means <em>elephant</em>, as in stuffed yellow elephant.</p>
+
+<p>For now, elephas is a straight forward parallelization of Keras using Spark's RDDs. Models are initialized on the driver, then serialized and shipped to workers. Spark workers deserialize the model and train their chunk of data before broadcasting their parameters back to the driver. The "master" model is updated by averaging worker parameters. </p>
+
+<h2>
+<a id="getting-started" class="anchor" href="#getting-started" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting started</h2>
+
+<p>Currently Elephas is not available on PyPI, so you'll have to clone this repository and run</p>
+
+<pre><code>python setup.py install
+</code></pre>
+
+<p>from within that directory. As this is not the place to explain how to install Spark, you should simply follow the instructions at the <a href="http://spark.apache.org/downloads.html">Spark download section</a> for a local installation. After installing both Keras and Spark, training a model is done as follows:</p>
+
+<ul>
+<li>Create a local pyspark context</li>
+</ul>
+
+<div class="highlight highlight-python"><pre><span class="pl-k">from</span> pyspark <span class="pl-k">import</span> SparkContext, SparkConf
+conf <span class="pl-k">=</span> SparkConf().setAppName(<span class="pl-s"><span class="pl-pds">'</span>Elephas_App<span class="pl-pds">'</span></span>).setMaster(<span class="pl-s"><span class="pl-pds">'</span>local[8]<span class="pl-pds">'</span></span>)
+sc <span class="pl-k">=</span> SparkContext(<span class="pl-smi">conf</span><span class="pl-k">=</span>conf)</pre></div>
+
+<ul>
+<li>Define and compile a Keras model</li>
+</ul>
+
+<div class="highlight highlight-python"><pre>model <span class="pl-k">=</span> Sequential()
+model.add(Dense(<span class="pl-c1">784</span>, <span class="pl-c1">128</span>))
+model.add(Activation(<span class="pl-s"><span class="pl-pds">'</span>relu<span class="pl-pds">'</span></span>))
+model.add(Dropout(<span class="pl-c1">0.2</span>))
+model.add(Dense(<span class="pl-c1">128</span>, <span class="pl-c1">128</span>))
+model.add(Activation(<span class="pl-s"><span class="pl-pds">'</span>relu<span class="pl-pds">'</span></span>))
+model.add(Dropout(<span class="pl-c1">0.2</span>))
+model.add(Dense(<span class="pl-c1">128</span>, <span class="pl-c1">10</span>))
+model.add(Activation(<span class="pl-s"><span class="pl-pds">'</span>softmax<span class="pl-pds">'</span></span>))
+
+rms <span class="pl-k">=</span> RMSprop()
+model.compile(<span class="pl-smi">loss</span><span class="pl-k">=</span><span class="pl-s"><span class="pl-pds">'</span>categorical_crossentropy<span class="pl-pds">'</span></span>, <span class="pl-smi">optimizer</span><span class="pl-k">=</span>rms)</pre></div>
+
+<ul>
+<li>Create an RDD from numpy arrays </li>
+</ul>
+
+<div class="highlight highlight-python"><pre><span class="pl-k">from</span> elephas.utils.rdd_utils <span class="pl-k">import</span> to_simple_rdd
+rdd <span class="pl-k">=</span> to_simple_rdd(sc, X_train, Y_train)</pre></div>
+
+<ul>
+<li>Define a SparkModel from Spark context and Keras model, then simply train it</li>
+</ul>
+
+<div class="highlight highlight-python"><pre><span class="pl-k">from</span> elephas.spark_model <span class="pl-k">import</span> SparkModel
+spark_model <span class="pl-k">=</span> SparkModel(sc,model)
+spark_model.train(rdd, <span class="pl-smi">nb_epoch</span><span class="pl-k">=</span><span class="pl-c1">20</span>, <span class="pl-smi">batch_size</span><span class="pl-k">=</span><span class="pl-c1">32</span>, <span class="pl-smi">verbose</span><span class="pl-k">=</span><span class="pl-c1">0</span>, <span class="pl-smi">validation_split</span><span class="pl-k">=</span><span class="pl-c1">0.1</span>)</pre></div>
+
+<ul>
+<li>Run your script using spark-submit</li>
+</ul>
+
+<pre><code>spark-submit --driver-memory 1G ./your_script.py
+</code></pre>
+
+<p>See the examples folder for a working example.</p>
+
+<h2>
+<a id="in-the-pipeline" class="anchor" href="#in-the-pipeline" aria-hidden="true"><span class="octicon octicon-link"></span></a>In the pipeline</h2>
+
+<ul>
+<li>Integration with Spark MLLib:
+
+<ul>
+<li>Train and evaluate LabeledPoints RDDs</li>
+<li>Make elephas models MLLib algorithms</li>
+</ul>
+</li>
+<li>Integration with Spark ML:
+
+<ul>
+<li>Use DataFrames for training</li>
+<li>Make models ML pipeline components</li>
+</ul>
+</li>
+</ul>
+        </section>
+
+        <aside id="sidebar">
+          <a href="https://github.com/maxpumperla/elephas/zipball/master" class="button">
+            <small>Download</small>
+            .zip file
+          </a>
+          <a href="https://github.com/maxpumperla/elephas/tarball/master" class="button">
+            <small>Download</small>
+            .tar.gz file
+          </a>
+
+          <p class="repo-owner"><a href="https://github.com/maxpumperla/elephas"></a> is maintained by <a href="https://github.com/maxpumperla">maxpumperla</a>.</p>
+
+          <p>This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the Architect theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.</p>
+        </aside>
+      </div>
+    </div>
+
+  
+  </body>
+</html>
