@@ -20,14 +20,17 @@
 
     <section class="main-content">
       <h1>
-<a id="elephas-distributed-deep-learning-with-keras--spark" class="anchor" href="#elephas-distributed-deep-learning-with-keras--spark" aria-hidden="true"><span class="octicon octicon-link"></span></a>Elephas: Distributed Deep Learning with Keras &amp; Spark</h1>
+<a id="elephas-distributed-deep-learning-with-keras--spark-" class="anchor" href="#elephas-distributed-deep-learning-with-keras--spark-" aria-hidden="true"><span class="octicon octicon-link"></span></a>Elephas: Distributed Deep Learning with Keras &amp; Spark <a href="https://travis-ci.org/maxpumperla/elephas"><img src="https://travis-ci.org/maxpumperla/elephas.svg?branch=master" alt="Build Status"></a>
+</h1>
+
+<p>Elephas is an extension of <a href="http://keras.io">Keras</a>, which allows you run distributed deep learning models at scale with <a href="http://spark.apache.org"> Spark</a>. Schematically, elephas works as follows.</p>
 
 <p><img src="elephas.gif" alt="Elephas"></p>
 
 <h2>
 <a id="introduction" class="anchor" href="#introduction" aria-hidden="true"><span class="octicon octicon-link"></span></a>Introduction</h2>
 
-<p>Elephas brings deep learning with <a href="http://keras.io">Keras</a> to <a href="http://spark.apache.org">Apache Spark</a>. Elephas intends to keep the simplicity and usability of Keras, allowing for fast prototyping of distributed models to run on large data sets.</p>
+<p>Elephas brings deep learning with <a href="http://keras.io">Keras</a> to <a href="http://spark.apache.org">Spark</a>. Elephas intends to keep the simplicity and high usability of Keras, thereby allowing for fast prototyping of distributed models, which can be run on massive data sets.</p>
 
 <p>ἐλέφας is Greek for <em>ivory</em> and an accompanying project to κέρας, meaning <em>horn</em>. If this seems weird mentioning, like a bad dream, you should confirm it actually is at the <a href="https://github.com/fchollet/keras/blob/master/README.md">Keras documentation</a>. Elephas also means <em>elephant</em>, as in stuffed yellow elephant.</p>
 
@@ -44,17 +47,31 @@
 <pre><code>pip install elephas
 </code></pre>
 
-<p>A quick way to install Spark locally is to use homebrew on Mac </p>
+<p>A quick way to install Spark locally is to use homebrew on Mac like this</p>
 
 <pre><code>brew install spark
 </code></pre>
 
-<p>or linuxbrew on linux</p>
+<p>or linuxbrew on linux.</p>
 
 <pre><code>brew install apache-spark
 </code></pre>
 
-<p>If this is not an option, you should simply follow the instructions at the <a href="http://spark.apache.org/downloads.html">Spark download section</a>. </p>
+<p>The brew version of Spark is outdated, so we recommend installing Spark as follows:</p>
+
+<pre><code>wget http://apache.mirrors.tds.net/spark/spark-1.5.2/spark-1.5.2-bin-hadoop2.6.tgz
+1.5.2-bin-hadoop2.6.tgz -P ~
+sudo tar zxvf ~/spark-* -C /usr/local
+sudo mv /usr/local/spark-* /usr/local/spark 
+</code></pre>
+
+<p>After that, make sure to put these path variables to your shell profile (e.g. <code>~/.zshrc</code>):</p>
+
+<pre><code>export SPARK_HOME=/usr/local/spark
+export PATH=$PATH:$SPARK_HOME/bin
+</code></pre>
+
+<p>If this is not an option, you should simply follow the instructions at the <a href="http://spark.apache.org/downloads.html">Spark download section</a>.  </p>
 
 <h3>
 <a id="basic-example" class="anchor" href="#basic-example" aria-hidden="true"><span class="octicon octicon-link"></span></a>Basic example</h3>
@@ -164,14 +181,14 @@ metrics <span class="pl-k">=</span> MulticlassMetrics(prediction_and_label)
 <h3>
 <a id="model-updates-optimizers" class="anchor" href="#model-updates-optimizers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Model updates (optimizers)</h3>
 
-<p>The optimizers module in elephas is an adaption of the same module in keras, i.e. it provides the user with the following list of optimizers:</p>
+<p><code>optimizer</code>: The optimizers module in elephas is an adaption of the same module in keras, i.e. it provides the user with the following list of optimizers:</p>
 
 <ul>
-<li>SGD</li>
-<li>RMSprop</li>
-<li>Adagrad</li>
-<li>Adadelta</li>
-<li>Adam</li>
+<li><code>SGD</code></li>
+<li><code>RMSprop</code></li>
+<li><code>Adagrad</code></li>
+<li><code>Adadelta</code></li>
+<li><code>Adam</code></li>
 </ul>
 
 <p>Once constructed, each of these can be passed to the <em>optimizer</em> parameter of the model. Updates in keras are computed with the help of theano, so most of the data structures in keras optimizers stem from theano. In elephas, gradients have already been computed by the respective workers, so it makes sense to entirely work with numpy arrays internally. </p>
@@ -181,32 +198,32 @@ metrics <span class="pl-k">=</span> MulticlassMetrics(prediction_and_label)
 <h3>
 <a id="update-frequency" class="anchor" href="#update-frequency" aria-hidden="true"><span class="octicon octicon-link"></span></a>Update frequency</h3>
 
-<p>The user can decide how often updates are passed to the master model by controlling the <em>frequency</em> parameter. To update every batch, choose 'batch' and to update only after every epoch, choose 'epoch'.</p>
+<p><code>frequency</code>: The user can decide how often updates are passed to the master model by controlling the <em>frequency</em> parameter. To update every batch, choose 'batch' and to update only after every epoch, choose 'epoch'.</p>
 
 <h3>
 <a id="update-mode" class="anchor" href="#update-mode" aria-hidden="true"><span class="octicon octicon-link"></span></a>Update mode</h3>
 
-<p>Currently, there's three different modes available in elephas, each corresponding to a different heuristic or parallelization scheme adopted, which is controlled by the <em>mode</em> parameter. The default property is 'asynchronous'.</p>
+<p><code>mode</code>: Currently, there's three different modes available in elephas, each corresponding to a different heuristic or parallelization scheme adopted, which is controlled by the <em>mode</em> parameter. The default property is 'asynchronous'.</p>
 
 <h4>
-<a id="asynchronous-updates-with-read-and-write-locks-modeasynchronous" class="anchor" href="#asynchronous-updates-with-read-and-write-locks-modeasynchronous" aria-hidden="true"><span class="octicon octicon-link"></span></a>Asynchronous updates with read and write locks (mode='asynchronous')</h4>
+<a id="asynchronous-updates-with-read-and-write-locks-modeasynchronous" class="anchor" href="#asynchronous-updates-with-read-and-write-locks-modeasynchronous" aria-hidden="true"><span class="octicon octicon-link"></span></a>Asynchronous updates with read and write locks (<code>mode='asynchronous'</code>)</h4>
 
 <p>This mode implements the algorithm described as <em>downpour</em> in [1], i.e. each worker can send updates whenever they are ready. The master model makes sure that no update gets lost, i.e. multiple updates get applied at the "same" time,  by locking the master parameters while reading and writing parameters. This idea has been used in Google's DistBelief framework. </p>
 
 <h4>
-<a id="asynchronous-updates-without-locks-modehogwild" class="anchor" href="#asynchronous-updates-without-locks-modehogwild" aria-hidden="true"><span class="octicon octicon-link"></span></a>Asynchronous updates without locks (mode='hogwild')</h4>
+<a id="asynchronous-updates-without-locks-modehogwild" class="anchor" href="#asynchronous-updates-without-locks-modehogwild" aria-hidden="true"><span class="octicon octicon-link"></span></a>Asynchronous updates without locks (<code>mode='hogwild'</code>)</h4>
 
 <p>Essentially the same procedure as above, but without requiring the locks. This heuristic assumes that we still fare well enough, even if we loose an update here or there. Updating parameters lock-free in a non-distributed setting for SGD goes by the name 'Hogwild!' [2], it's distributed extension is called 'Dogwild!' [3].  </p>
 
 <h4>
-<a id="synchronous-updates-modesynchronous" class="anchor" href="#synchronous-updates-modesynchronous" aria-hidden="true"><span class="octicon octicon-link"></span></a>Synchronous updates (mode='synchronous')</h4>
+<a id="synchronous-updates-modesynchronous" class="anchor" href="#synchronous-updates-modesynchronous" aria-hidden="true"><span class="octicon octicon-link"></span></a>Synchronous updates (<code>mode='synchronous'</code>)</h4>
 
-<p>In this mode each worker sends a new batch of parameter updates at the same time, which are then processed on the master. Accordingly, this algorithm is sometimes called <em>batch synchronous parallel</em>.</p>
+<p>In this mode each worker sends a new batch of parameter updates at the same time, which are then processed on the master. Accordingly, this algorithm is sometimes called <em>batch synchronous parallel</em> or just BSP.</p>
 
 <h3>
 <a id="degree-of-parallelization-number-of-workers" class="anchor" href="#degree-of-parallelization-number-of-workers" aria-hidden="true"><span class="octicon octicon-link"></span></a>Degree of parallelization (number of workers)</h3>
 
-<p>Lastly, the degree to which we parallelize our training data is controlled by the parameter <em>num_workers</em>.</p>
+<p><code>num_workers</code>: Lastly, the degree to which we parallelize our training data is controlled by the parameter <em>num_workers</em>.</p>
 
 <h2>
 <a id="discussion" class="anchor" href="#discussion" aria-hidden="true"><span class="octicon octicon-link"></span></a>Discussion</h2>
