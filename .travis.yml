@@ -23,6 +23,7 @@ install:
   - source activate test-environment
   - pip install pytest-cov python-coveralls
   - pip install git+git://github.com/Theano/Theano.git
+  - pip install tensorflow
   - pip install keras
   - python setup.py install
 
