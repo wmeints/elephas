@@ -27,7 +27,7 @@ install:
   - python setup.py install
 
   # Install Spark
-  - wget http://apache.mirrors.tds.net/spark/spark-1.5.2/spark-1.5.2-bin-hadoop2.6.tgz -P $HOME
+  - wget https://archive.apache.org/dist/spark/spark-1.5.2/spark-1.5.2-bin-hadoop2.6.tgz -P $HOME
   - tar zxvf $HOME/spark-* -C $HOME
   - export SPARK_HOME=$HOME/spark-1.5.2-bin-hadoop2.6
   - export PATH=$PATH:$SPARK_HOME/bin
