@@ -19,7 +19,7 @@ before_install:
   - conda info -a
   
 install:
-  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib pandas pytest h5py flask pip
+  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib pandas pytest h5py flask pip ipython jupyter
   - source activate test-environment
   - pip install pytest-cov python-coveralls
   - pip install git+git://github.com/Theano/Theano.git
